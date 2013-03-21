@@ -7,10 +7,12 @@ import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.View;
+import android.view.View.OnFocusChangeListener;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -28,20 +30,23 @@ public class LoginActivity extends Activity {
 			"foo@example.com:hello", "bar@example.com:world" };
 
 	/**
-	 * The default email to populate the email field with.
+	 * The default email/url to populate fields with.
 	 */
-	public static final String EXTRA_EMAIL = "com.example.android.authenticatordemo.extra.EMAIL";
+	public static final String EXTRA_URL = "com.thatpanda.tentvents.extra.URL";
+	public static final String EXTRA_EMAIL = "com.thatpanda.tentvents.extra.EMAIL";
 
 	/**
 	 * Keep track of the login task to ensure we can cancel it if requested.
 	 */
 	private UserLoginTask mAuthTask = null;
 
-	// Values for email and password at the time of the login attempt.
+	// Values for url, email and password at the time of the login attempt.
+	private String mUrl;
 	private String mEmail;
 	private String mPassword;
 
 	// UI references.
+	private EditText mUrlView;
 	private EditText mEmailView;
 	private EditText mPasswordView;
 	private View mLoginFormView;
@@ -55,6 +60,23 @@ public class LoginActivity extends Activity {
 		setContentView(R.layout.activity_login);
 
 		// Set up the login form.
+		mUrl = getIntent().getStringExtra(EXTRA_URL);
+		mUrlView = (EditText) findViewById(R.id.url);
+		mUrlView.setText(mUrl);
+		mUrlView.setOnFocusChangeListener(new OnFocusChangeListener() {
+			@Override
+			public void onFocusChange(View v, boolean hasFocus) {
+				Editable text = mUrlView.getText();
+				
+				// If lost focus and doesn't contain a schema, prepend default
+				if (!hasFocus && !text.toString().contains("://")) {
+					String prepend = getResources().getString(
+							R.string.default_uri_scheme) + "://";
+					text.insert(0,  prepend);
+				}
+			}
+		});
+		
 		mEmail = getIntent().getStringExtra(EXTRA_EMAIL);
 		mEmailView = (EditText) findViewById(R.id.email);
 		mEmailView.setText(mEmail);
@@ -104,10 +126,12 @@ public class LoginActivity extends Activity {
 		}
 
 		// Reset errors.
+		mUrlView.setError(null);
 		mEmailView.setError(null);
 		mPasswordView.setError(null);
 
 		// Store values at the time of the login attempt.
+		mUrl = mUrlView.getText().toString();
 		mEmail = mEmailView.getText().toString();
 		mPassword = mPasswordView.getText().toString();
 
@@ -129,6 +153,17 @@ public class LoginActivity extends Activity {
 		if (TextUtils.isEmpty(mEmail)) {
 			mEmailView.setError(getString(R.string.error_field_required));
 			focusView = mEmailView;
+			cancel = true;
+		} else if (!mEmail.contains("@")) {
+			mEmailView.setError(getString(R.string.error_invalid_email));
+			focusView = mEmailView;
+			cancel = true;
+		}
+		
+		// Check for a valid url.
+		if (TextUtils.isEmpty(mUrl)) {
+			mUrlView.setError(getString(R.string.error_field_required));
+			focusView = mUrlView;
 			cancel = true;
 		} else if (!mEmail.contains("@")) {
 			mEmailView.setError(getString(R.string.error_invalid_email));
