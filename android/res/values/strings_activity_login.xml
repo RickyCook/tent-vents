@@ -14,5 +14,7 @@
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
     
+    <string name="security_title">DEEEENIED!!!</string>
+    <string name="security_message">For whatever reason, I don\'t have permission to do something :(\n\n%s</string>
 
 </resources>

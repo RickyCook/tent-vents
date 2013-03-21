@@ -2,5 +2,6 @@
 
     <string name="app_name">TentVents</string>
     <string name="default_uri_scheme">http</string>
+    <string name="api_login">login</string>
 
 </resources>

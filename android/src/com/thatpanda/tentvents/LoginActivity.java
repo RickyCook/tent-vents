@@ -1,9 +1,22 @@
 package com.thatpanda.tentvents;
 
+import java.io.IOException;
+import java.util.HashMap;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,13 +35,6 @@ import android.widget.TextView;
  * well.
  */
 public class LoginActivity extends Activity {
-	/**
-	 * A dummy authentication store containing known user names and passwords.
-	 * TODO: remove after connecting to a real authentication system.
-	 */
-	private static final String[] DUMMY_CREDENTIALS = new String[] {
-			"foo@example.com:hello", "bar@example.com:world" };
-
 	/**
 	 * The default email/url to populate fields with.
 	 */
@@ -66,13 +72,19 @@ public class LoginActivity extends Activity {
 		mUrlView.setOnFocusChangeListener(new OnFocusChangeListener() {
 			@Override
 			public void onFocusChange(View v, boolean hasFocus) {
-				Editable text = mUrlView.getText();
-				
-				// If lost focus and doesn't contain a schema, prepend default
-				if (!hasFocus && !text.toString().contains("://")) {
-					String prepend = getResources().getString(
-							R.string.default_uri_scheme) + "://";
-					text.insert(0,  prepend);
+				// Lost focus so do updates
+				if (!hasFocus) {
+					Editable text = mUrlView.getText();
+					String textString = text.toString();
+					
+					// TODO: Trim whitespace
+					// Prepend URI scheme
+					if (!textString.contains("://")) {
+						String prepend = getString(
+								R.string.default_uri_scheme) + "://";
+						text.insert(0,  prepend);
+					}
+					// TODO: Remove trailing slash
 				}
 			}
 		});
@@ -180,7 +192,7 @@ public class LoginActivity extends Activity {
 			// perform the user login attempt.
 			mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
 			showProgress(true);
-			mAuthTask = new UserLoginTask();
+			mAuthTask = new UserLoginTask(this);
 			mAuthTask.execute((Void) null);
 		}
 	}
@@ -225,46 +237,87 @@ public class LoginActivity extends Activity {
 			mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
 		}
 	}
+	
+	/**
+	 * Gets an API URI from URL text and resource id representing API command
+	 */
+	private String getApiUri(int id) {
+		return
+				  mUrlView.getText().toString()
+				+ "/"
+				+ getString(id);
+	}
 
 	/**
 	 * Represents an asynchronous login/registration task used to authenticate
 	 * the user.
 	 */
 	public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
+
+		private HashMap<EditText, String> errors = new HashMap<EditText, String>();
+		
+		private AlertDialog alertDialog;
+		private boolean alertReady = false;
+
+		public UserLoginTask(Context context) {
+			alertDialog = new AlertDialog.Builder(context).create();
+		}
+		
 		@Override
 		protected Boolean doInBackground(Void... params) {
-			// TODO: attempt authentication against a network service.
-
+			// TODO: login
 			try {
-				// Simulate network access.
-				Thread.sleep(2000);
-			} catch (InterruptedException e) {
+				HttpClient client = new DefaultHttpClient();
+			    HttpPost httpPost = new HttpPost(getApiUri(R.string.api_login));
+				HttpResponse response = client.execute(httpPost);
+				StatusLine statusLine = response.getStatusLine();
+				int statusCode = statusLine.getStatusCode();
+				switch (statusCode) {
+					case 200:
+						break;
+					default:
+						mUrlView.setError(statusLine.getReasonPhrase());
+						return false;
+				}
+			} catch (SecurityException e) {
+				alertDialog.setTitle(getString(R.string.security_title));
+				alertDialog.setMessage(getString(R.string.security_message)
+						.replace("%s", e.getLocalizedMessage()));
+				alertReady = true;
+				
+				return false;
+			} catch (IOException e) {
+				errors.put(mUrlView, e.getLocalizedMessage());
 				return false;
 			}
-
-			for (String credential : DUMMY_CREDENTIALS) {
-				String[] pieces = credential.split(":");
-				if (pieces[0].equals(mEmail)) {
-					// Account exists, return true if the password matches.
-					return pieces[1].equals(mPassword);
-				}
-			}
-
+		    
 			// TODO: register the new account here.
 			return true;
+		}
+		
+		@Override
+		protected void onProgressUpdate(Void... values) {
+			if (alertReady) {
+				alertDialog.show();
+				alertReady = false;
+			}
 		}
 
 		@Override
 		protected void onPostExecute(final Boolean success) {
 			mAuthTask = null;
 			showProgress(false);
-
+			
+			for (EditText e : errors.keySet()) {
+				e.setError(errors.get(e));
+				e.requestFocus();
+			}
+			
 			if (success) {
 				finish();
-			} else {
-				mPasswordView
-						.setError(getString(R.string.error_incorrect_password));
-				mPasswordView.requestFocus();
+			} else if (alertReady) {
+				alertDialog.show();
+				alertReady = false;
 			}
 		}
 
