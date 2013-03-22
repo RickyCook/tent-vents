@@ -7,14 +7,6 @@ var config = require('./config'),
     dbUsers = nstore.new(config.db.users);
 
 /*****************
- * Help
- */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/');
-}
-
-/*****************
  * Setup
  */
 
