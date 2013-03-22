@@ -23,6 +23,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -73,6 +74,7 @@ public class LoginActivity extends Activity {
 
 		// Set up the login form.
 		mUrl = getIntent().getStringExtra(EXTRA_URL);
+		if (mUrl == null) mUrl = getDefaultUri();
 		mUrlView = (EditText) findViewById(R.id.url);
 		mUrlView.setText(mUrl);
 		mUrlView.setOnFocusChangeListener(new OnFocusChangeListener() {
@@ -96,6 +98,7 @@ public class LoginActivity extends Activity {
 		});
 		
 		mEmail = getIntent().getStringExtra(EXTRA_EMAIL);
+		if (mEmail == null) mEmail = getDefaultEmail();
 		mEmailView = (EditText) findViewById(R.id.email);
 		mEmailView.setText(mEmail);
 
@@ -194,6 +197,8 @@ public class LoginActivity extends Activity {
 			// form field with an error.
 			focusView.requestFocus();
 		} else {
+			setDefaultUri(mUrl);
+			setDefaultEmail(mEmail);
 			// Show a progress spinner, and kick off a background task to
 			// perform the user login attempt.
 			mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
@@ -256,6 +261,24 @@ public class LoginActivity extends Activity {
 				  mUrlView.getText().toString()
 				+ "/"
 				+ getString(id);
+	}
+	private void setDefaultUri(String uri) {
+		SharedPreferences.Editor p = getPreferences(MODE_PRIVATE).edit();
+		p.putString("uri", uri);
+		p.commit();
+	}
+	public String getDefaultUri() {
+		SharedPreferences p = getPreferences(MODE_PRIVATE);
+		return p.getString("uri", null);
+	}
+	private void setDefaultEmail(String email) {
+		SharedPreferences.Editor p = getPreferences(MODE_PRIVATE).edit();
+		p.putString("email", email);
+		p.commit();
+	}
+	public String getDefaultEmail() {
+		SharedPreferences p = getPreferences(MODE_PRIVATE);
+		return p.getString("email", null);
 	}
 
 	/**
