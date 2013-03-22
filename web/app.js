@@ -16,6 +16,6 @@ app.listen(config.port);
 console.log('Listening on port ' + config.port);
 
 app.use(function(err, req, res, next) {
-  console.error(err.stack);
-  res.send(500, 'Aww nuuuu! Something went wrong!');
+	console.error(err.stack);
+	res.send(500, 'Aww nuuuu! Something went wrong!');
 });
