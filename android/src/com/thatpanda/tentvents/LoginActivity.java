@@ -327,6 +327,7 @@ public class LoginActivity extends Activity {
 					case 403:
 						errors.put(mPasswordView, getString(R.string.error_incorrect_password));
 						return false;
+					// TODO: parse error results for message
 					default:
 						errors.put(mUrlView, statusLine.getReasonPhrase());
 						return false;
@@ -342,9 +343,6 @@ public class LoginActivity extends Activity {
 				errors.put(mUrlView, e.getLocalizedMessage());
 				return false;
 			}
-		    
-			// TODO: register the new account here.
-			//return true;
 		}
 		
 		@Override
