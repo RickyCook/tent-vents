@@ -1,6 +1,7 @@
 # node.js
 npm-debug.log
 node_modules/
+web/*.db
 
 # built application files
 *.apk

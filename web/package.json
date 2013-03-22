@@ -7,6 +7,7 @@
     "express": "3.x",
     "express-resource": "1.x",
     "jquery": "1.8.3",
+    "nstore": "0.5.x",
     "passport": "0.1.x",
     "passport-local": "0.1.x"
   }
