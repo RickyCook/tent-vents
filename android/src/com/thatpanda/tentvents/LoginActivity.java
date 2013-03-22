@@ -1,6 +1,8 @@
 package com.thatpanda.tentvents;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -199,7 +201,7 @@ public class LoginActivity extends Activity {
 			// perform the user login attempt.
 			mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
 			showProgress(true);
-			mAuthTask = new UserLoginTask(this, mUrlView, mEmailView, mPasswordView);
+			mAuthTask = new UserLoginTask(this);
 			mAuthTask.execute(
 					getApiUri(R.string.api_login),
 					mEmailView.getText().toString(),
@@ -275,17 +277,17 @@ public class LoginActivity extends Activity {
 		
 		@Override
 		protected Boolean doInBackground(String... params) {
-			String host     = params[0];
-			String username = params[1];
+			String loginUri = params[0];
+			String email = params[1];
 			String password = params[2];
 			
 			// TODO: login
 			try {
 				HttpClient client = new DefaultHttpClient();
-				HttpPost httpPost = new HttpPost(host);
+				HttpPost httpPost = new HttpPost(loginUri + "/local.json");
 				
 				List <NameValuePair> httpParams = new ArrayList<NameValuePair>();
-				httpParams.add(new BasicNameValuePair("userame", username));
+				httpParams.add(new BasicNameValuePair("email", email));
 				httpParams.add(new BasicNameValuePair("password", password));
 				httpPost.setEntity(new UrlEncodedFormEntity(httpParams, HTTP.UTF_8));
 				
@@ -294,7 +296,14 @@ public class LoginActivity extends Activity {
 				int statusCode = statusLine.getStatusCode();
 				switch (statusCode) {
 					case 200:
-						return true;
+						BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+						StringBuilder builder = new StringBuilder();
+						for (String line = null; (line = reader.readLine()) != null;) {
+						    builder.append(line).append("\n");
+						}
+						errors.put(mEmailView, builder.toString());
+						return false;
+						//return true;
 					case 403:
 						errors.put(mPasswordView, getString(R.string.error_incorrect_password));
 						return false;
@@ -315,7 +324,7 @@ public class LoginActivity extends Activity {
 			}
 		    
 			// TODO: register the new account here.
-			return true;
+			//return true;
 		}
 		
 		@Override

@@ -1,3 +1,7 @@
+# node.js
+npm-debug.log
+node_modules/
+
 # built application files
 *.apk
 *.ap_
