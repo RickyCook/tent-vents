@@ -1,14 +1,21 @@
 package com.thatpanda.tentvents;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.HTTP;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -192,8 +199,12 @@ public class LoginActivity extends Activity {
 			// perform the user login attempt.
 			mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
 			showProgress(true);
-			mAuthTask = new UserLoginTask(this);
-			mAuthTask.execute((Void) null);
+			mAuthTask = new UserLoginTask(this, mUrlView, mEmailView, mPasswordView);
+			mAuthTask.execute(
+					getApiUri(R.string.api_login),
+					mEmailView.getText().toString(),
+					mPasswordView.getText().toString()
+			);
 		}
 	}
 
@@ -252,8 +263,7 @@ public class LoginActivity extends Activity {
 	 * Represents an asynchronous login/registration task used to authenticate
 	 * the user.
 	 */
-	public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
+	public class UserLoginTask extends AsyncTask<String, Void, Boolean> {
 		private HashMap<EditText, String> errors = new HashMap<EditText, String>();
 		
 		private AlertDialog alertDialog;
@@ -264,19 +274,32 @@ public class LoginActivity extends Activity {
 		}
 		
 		@Override
-		protected Boolean doInBackground(Void... params) {
+		protected Boolean doInBackground(String... params) {
+			String host     = params[0];
+			String username = params[1];
+			String password = params[2];
+			
 			// TODO: login
 			try {
 				HttpClient client = new DefaultHttpClient();
-			    HttpPost httpPost = new HttpPost(getApiUri(R.string.api_login));
+				HttpPost httpPost = new HttpPost(host);
+				
+				List <NameValuePair> httpParams = new ArrayList<NameValuePair>();
+				httpParams.add(new BasicNameValuePair("userame", username));
+				httpParams.add(new BasicNameValuePair("password", password));
+				httpPost.setEntity(new UrlEncodedFormEntity(httpParams, HTTP.UTF_8));
+				
 				HttpResponse response = client.execute(httpPost);
 				StatusLine statusLine = response.getStatusLine();
 				int statusCode = statusLine.getStatusCode();
 				switch (statusCode) {
 					case 200:
-						break;
+						return true;
+					case 403:
+						errors.put(mPasswordView, getString(R.string.error_incorrect_password));
+						return false;
 					default:
-						mUrlView.setError(statusLine.getReasonPhrase());
+						errors.put(mUrlView, statusLine.getReasonPhrase());
 						return false;
 				}
 			} catch (SecurityException e) {
