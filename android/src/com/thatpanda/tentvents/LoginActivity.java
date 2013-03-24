@@ -16,6 +16,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -72,6 +74,13 @@ public class LoginActivity extends Activity {
 
 		setContentView(R.layout.activity_login);
 
+		if (getKey() != null) {
+			AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+			alertDialog.setTitle("Already logged in");
+			alertDialog.setMessage("Your session API key is " + getKey());
+			alertDialog.show();
+		}
+		
 		// Set up the login form.
 		mUrl = getIntent().getStringExtra(EXTRA_URL);
 		if (mUrl == null) mUrl = getDefaultUri();
@@ -262,23 +271,22 @@ public class LoginActivity extends Activity {
 				+ "/"
 				+ getString(id);
 	}
-	private void setDefaultUri(String uri) {
+	
+	public void setDefaultUri(String v) { setSPWrapper("uri", v); }
+	public String getDefaultUri() { return getSPWrapper("uri"); }
+	public void setDefaultEmail(String v) { setSPWrapper("email", v); }
+	public String getDefaultEmail() { return getSPWrapper("email"); }
+	public void setKey(String v) { setSPWrapper("key", v); }
+	public String getKey() { return getSPWrapper("key"); }
+	
+	private void setSPWrapper(String k, String v) {
 		SharedPreferences.Editor p = getPreferences(MODE_PRIVATE).edit();
-		p.putString("uri", uri);
+		p.putString(k, v);
 		p.commit();
 	}
-	public String getDefaultUri() {
+	private String getSPWrapper(String k) {
 		SharedPreferences p = getPreferences(MODE_PRIVATE);
-		return p.getString("uri", null);
-	}
-	private void setDefaultEmail(String email) {
-		SharedPreferences.Editor p = getPreferences(MODE_PRIVATE).edit();
-		p.putString("email", email);
-		p.commit();
-	}
-	public String getDefaultEmail() {
-		SharedPreferences p = getPreferences(MODE_PRIVATE);
-		return p.getString("email", null);
+		return p.getString(k, null);
 	}
 
 	/**
@@ -316,12 +324,11 @@ public class LoginActivity extends Activity {
 				int statusCode = statusLine.getStatusCode();
 				switch (statusCode) {
 					case 200:
-						BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
-						StringBuilder builder = new StringBuilder();
-						for (String line = null; (line = reader.readLine()) != null;) {
-						    builder.append(line).append("\n");
-						}
-						errors.put(mEmailView, builder.toString());
+						JSONObject json = JSONStreamReader.getJSON(response.getEntity().getContent(), "UTF-8");
+						setKey(json.getString("key"));
+						alertDialog.setTitle("Success!!!");
+						alertDialog.setMessage("Your session API key is " + getKey());
+						alertReady = true;
 						return false;
 						//return true;
 					case 403:
@@ -340,6 +347,12 @@ public class LoginActivity extends Activity {
 				
 				return false;
 			} catch (IOException e) {
+				errors.put(mUrlView, e.getLocalizedMessage());
+				return false;
+			} catch (IllegalStateException e) {
+				errors.put(mUrlView, e.getLocalizedMessage());
+				return false;
+			} catch (JSONException e) {
 				errors.put(mUrlView, e.getLocalizedMessage());
 				return false;
 			}
