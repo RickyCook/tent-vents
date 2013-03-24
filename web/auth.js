@@ -2,7 +2,8 @@ var config = require('./config'),
     resource = require('express-resource'),
     nstore = require('nstore'),
     passport = require('passport'),
-    LocalStrategy = require('passport-local').Strategy
+    LocalStrategy = require('passport-local').Strategy,
+    uuid = require('node-uuid'),
 
     $ = require('jquery'),
 
@@ -17,7 +18,7 @@ passport.use(new LocalStrategy({
 		usernameField: 'email',
 	},
 	function(email, password, done) {
-		var user
+		var user, currentKey
 		    cryptPassword = encryptPassword(password);
 		dbUsers.get(email, function(err, doc, key) {
 			if (err) {
@@ -26,7 +27,7 @@ passport.use(new LocalStrategy({
 						user = { cryptPassword: cryptPassword, devices: [] };
 						dbUsers.save(email, user, function(err) {
 							if (err) return done(err);
-							return done(null, user)
+							return doLogin(email, user, done);
 						});
 					} else {
 						return done(null, false, {
@@ -48,11 +49,23 @@ passport.use(new LocalStrategy({
 				});
 			}
 			if (cryptPassword != doc.cryptPassword)
-				return done(null, false, { message: 'Password was incorrect' });;
-			return done(null, doc);
+				return done(null, false, { message: 'Password was incorrect' });
+
+			return doLogin(email, doc, done);
 		});
 	}
 ));
+function doLogin(email, user, done) {
+	var currentKey = uuid.v4();
+	dbKeys.save(currentKey, email, function(err) {
+		if (err) return done(err);
+		user.currentKey = currentKey;
+		return done(null, {
+			email: email,
+			key: currentKey,
+		});
+	});
+}
 
 passport.serializeUser(function(user, done) {
 	done(null, user);
@@ -67,7 +80,7 @@ function setupRoutes(app) {
 	* All
 	*/
 	authOkay = function(req, res) {
-		return res.send(200, { email: req.user.email, key: req.user.currentKey });
+		return res.send(200, req.user);
 	}
 	app.post('/auth/local.json',
 		passport.authenticate('local', { session:false }),
